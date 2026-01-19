@@ -1,0 +1,1 @@
+$h=$env:COMPUTERNAME;$o="C:\dfir\collected_skadi\$h";New-Item -ItemType Directory -Force -Path $o|Out-Null;Start-Process "C:\dfir\tools\CyLR\CyLR.exe" -ArgumentList "-od `"$o`" -of `"$h`_skadi.zip`"" -Wait -NoNewWindow
