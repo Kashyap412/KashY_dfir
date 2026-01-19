@@ -111,251 +111,251 @@ foreach ($client in $clients) {
         )
         $dirs | ForEach-Object { New-Item -ItemType Directory -Force -Path $_ | Out-Null }
 
-        # # =================================================
-        # # Amcache
-        # # =================================================
-        # if (Test-Path "$SRC\Windows\AppCompat\Programs\Amcache.hve") {
-        #     Log "[*] Amcache" $LOG
-        #     Start-Process $Amcache -Wait -NoNewWindow `
-        #         -ArgumentList "-f `"$SRC\Windows\AppCompat\Programs\Amcache.hve`" --csv `"$PARSED\Amcache`""
-        #     Get-ChildItem "$PARSED\Amcache\*.csv" | ForEach-Object {Rename-Item $_.FullName "$PARSED\Amcache\$caseName`_$($_.Name)" -Force}
-        # Get-ChildItem $PARSED -Recurse -Filter "*.csv" | ForEach-Object {
-        # $newName = $_.Name -replace '_skadi_\d{14}', ''
-        # if ($newName -ne $_.Name) {
-        #     Rename-Item $_.FullName $newName -Force
-        # }
-        # }
+        # =================================================
+        # Amcache
+        # =================================================
+        if (Test-Path "$SRC\Windows\AppCompat\Programs\Amcache.hve") {
+            Log "[*] Amcache" $LOG
+            Start-Process $Amcache -Wait -NoNewWindow `
+                -ArgumentList "-f `"$SRC\Windows\AppCompat\Programs\Amcache.hve`" --csv `"$PARSED\Amcache`""
+            Get-ChildItem "$PARSED\Amcache\*.csv" | ForEach-Object {Rename-Item $_.FullName "$PARSED\Amcache\$caseName`_$($_.Name)" -Force}
+        Get-ChildItem $PARSED -Recurse -Filter "*.csv" | ForEach-Object {
+        $newName = $_.Name -replace '_skadi_\d{14}', ''
+        if ($newName -ne $_.Name) {
+            Rename-Item $_.FullName $newName -Force
+        }
+        }
 
-        # }
-
-
-        # # =================================================
-        # # EVTX → JSON (PREFIX WITH CLIENT NAME)
-        # # =================================================
-        # $evtx = "$SRC\Windows\System32\winevt\Logs"
-
-        # # Extract clean client name (before _skadi_)
-        # $clientPrefix = ($caseName -split '_skadi_')[0]
-
-        # if (Test-Path $evtx) {
-        #     Log "[*] EVTX" $LOG
-        #     Get-ChildItem $evtx -Filter "*.evtx" -File | ForEach-Object {
-
-        #         $jsonName = "${clientPrefix}_$($_.BaseName).json"
-
-        #         Start-Process $EvtxECmd -Wait -NoNewWindow `
-        #             -ArgumentList @(
-        #                 "-f","`"$($_.FullName)`"",
-        #                 "--json","`"$PARSED\EventLogs`"",
-        #                 "--jsonf","`"$jsonName`""
-        #             )
-        #             Get-ChildItem "$PARSED\EventLogs" -Filter "*.json" | ForEach-Object {
-        #             $newName = $_.Name -replace '_skadi_', '_'
-        #             if ($newName -ne $_.Name) {
-        #                 Rename-Item $_.FullName $newName -Force
-        #             }
-        #             }
-        #     }
-
-        # }
-
-
-
-        # # =================================================
-        # # Jumplists
-        # # =================================================
-        # Get-ChildItem "$SRC\Users" -Directory -ErrorAction SilentlyContinue | ForEach-Object {
-        #     $jl = "$($_.FullName)\AppData\Roaming\Microsoft\Windows\Recent\AutomaticDestinations"
-        #     if (Test-Path $jl) {
-        #         Log "[*] Jumplist $($_.Name)" $LOG
-        #         Start-Process $JLECmd -Wait -NoNewWindow `
-        #             -ArgumentList "-d `"$jl`" --json `"$PARSED\JumpList`""
-            
-                    
-        #     }
-        # }
-
-        # # =================================================
-        # # LNK
-        # # =================================================
-        # Log "[*] LNK" $LOG
-
-        # $caseClean = ($caseName -split '_skadi')[0]
-
-        # Start-Process $LECmd -Wait -NoNewWindow `
-        #     -ArgumentList "-d `"$SRC`" --all --json `"$PARSED\LNK`""
-
-        # # Rename LECmd output
-        # Get-ChildItem "$PARSED\LNK" -Filter "*.json" | ForEach-Object {
-
-        #     # Match default LECmd format: TIMESTAMP_LECmd_Output.json
-        #     if ($_.Name -match '^\d{14}_LECmd_Output\.json$') {
-
-        #         $newName = "${caseClean}_lnk_Output.json"
-        #         Rename-Item $_.FullName $newName -Force
-        #     }
-        # }
-
-        # # =================================================
-        # # MFT 
-        # # =================================================
-        # $mft = Get-ChildItem $SRC -Force -ErrorAction SilentlyContinue |
-        #     Where-Object { $_.Name -eq '$MFT' }
-
-        # if ($mft) {
-
-        #     Log "[*] MFT" $LOG
-
-        #     $caseClean = ($caseName -split '_skadi')[0]
-
-        #     Copy-Item $mft.FullName "$PARSED\MFT\$($mft.Name)" -Force
-
-        #     Start-Process $MFTECmd -Wait -NoNewWindow `
-        #         -ArgumentList "-f `"$PARSED\MFT\$($mft.Name)`" --json `"$PARSED\MFT`""
-
-        #     # Rename MFTECmd output
-        #     Get-ChildItem "$PARSED\MFT" -Filter "*.json" | ForEach-Object {
-
-        #         # Default MFTECmd format:
-        #         # TIMESTAMP_MFTECmd_$MFT_Output.json
-        #         if ($_.Name -match '^\d{14}_MFTECmd_\$MFT_Output\.json$') {
-
-        #             $newName = "${caseClean}_MFT_Output.json"
-        #             Rename-Item $_.FullName $newName -Force
-        #         }
-        #     }
-        # }
-
-
-        # # =================================================
-        # # Prefetch
-        # # =================================================
-        # if (Test-Path "$SRC\Windows\Prefetch") {
-
-        #     Log "[*] Prefetch" $LOG
-
-        #     $caseClean = ($caseName -split '_skadi')[0]
-
-        #     Start-Process $PECmd -Wait -NoNewWindow `
-        #         -ArgumentList "-d `"$SRC\Windows\Prefetch`" --json `"$PARSED\Prefetch`""
-
-        #     # Rename PECmd output
-        #     Get-ChildItem "$PARSED\Prefetch" -Filter "*.json" | ForEach-Object {
-
-        #         # Default PECmd format:
-        #         # TIMESTAMP_PECmd_Output.json
-        #         if ($_.Name -match '^\d{14}_PECmd_Output\.json$') {
-
-        #             $newName = "${caseClean}_Prefetch_Output.json"
-        #             Rename-Item $_.FullName $newName -Force
-        #         }
-        #     }
-        # }
+        }
 
 
         # =================================================
-        # No Registry – NTUSER.DAT
+        # EVTX → JSON (PREFIX WITH CLIENT NAME)
         # =================================================
+        $evtx = "$SRC\Windows\System32\winevt\Logs"
 
-        # $rebs = Get-ChildItem "$TOOLS\net9\RECmd\BatchExamples" -Filter "*.reb" -File
+        # Extract clean client name (before _skadi_)
+        $clientPrefix = ($caseName -split '_skadi_')[0]
 
-        # Get-ChildItem "$SRC\Users" -Directory -ErrorAction SilentlyContinue | ForEach-Object {
+        if (Test-Path $evtx) {
+            Log "[*] EVTX" $LOG
+            Get-ChildItem $evtx -Filter "*.evtx" -File | ForEach-Object {
 
-        #     $ntuser = "$($_.FullName)\NTUSER.DAT"
-        #     if (-not (Test-Path $ntuser)) { return }
+                $jsonName = "${clientPrefix}_$($_.BaseName).json"
 
-        #     Log "[*] Registry NTUSER.DAT $($_.Name)" $LOG
+                Start-Process $EvtxECmd -Wait -NoNewWindow `
+                    -ArgumentList @(
+                        "-f","`"$($_.FullName)`"",
+                        "--json","`"$PARSED\EventLogs`"",
+                        "--jsonf","`"$jsonName`""
+                    )
+                    Get-ChildItem "$PARSED\EventLogs" -Filter "*.json" | ForEach-Object {
+                    $newName = $_.Name -replace '_skadi_', '_'
+                    if ($newName -ne $_.Name) {
+                        Rename-Item $_.FullName $newName -Force
+                    }
+                    }
+            }
 
-        #     foreach ($reb in $rebs) {
+        }
 
-        #         Start-Process $RECmd -Wait -NoNewWindow `
-        #             -ArgumentList @(
-        #                 "-f","`"$ntuser`"",
-        #                 "--bn","`"$($reb.FullName)`"",
-        #                 "--csv","`"$PARSED\Registry`""
-        #             )
+
+
+        # =================================================
+        # Jumplists
+        # =================================================
+        Get-ChildItem "$SRC\Users" -Directory -ErrorAction SilentlyContinue | ForEach-Object {
+            $jl = "$($_.FullName)\AppData\Roaming\Microsoft\Windows\Recent\AutomaticDestinations"
+            if (Test-Path $jl) {
+                Log "[*] Jumplist $($_.Name)" $LOG
+                Start-Process $JLECmd -Wait -NoNewWindow `
+                    -ArgumentList "-d `"$jl`" --json `"$PARSED\JumpList`""
+            
                     
-        #     }
+            }
+        }
+
+        # =================================================
+        # LNK
+        # =================================================
+        Log "[*] LNK" $LOG
+
+        $caseClean = ($caseName -split '_skadi')[0]
+
+        Start-Process $LECmd -Wait -NoNewWindow `
+            -ArgumentList "-d `"$SRC`" --all --json `"$PARSED\LNK`""
+
+        # Rename LECmd output
+        Get-ChildItem "$PARSED\LNK" -Filter "*.json" | ForEach-Object {
+
+            # Match default LECmd format: TIMESTAMP_LECmd_Output.json
+            if ($_.Name -match '^\d{14}_LECmd_Output\.json$') {
+
+                $newName = "${caseClean}_lnk_Output.json"
+                Rename-Item $_.FullName $newName -Force
+            }
+        }
+
+        # =================================================
+        # MFT 
+        # =================================================
+        $mft = Get-ChildItem $SRC -Force -ErrorAction SilentlyContinue |
+            Where-Object { $_.Name -eq '$MFT' }
+
+        if ($mft) {
+
+            Log "[*] MFT" $LOG
+
+            $caseClean = ($caseName -split '_skadi')[0]
+
+            Copy-Item $mft.FullName "$PARSED\MFT\$($mft.Name)" -Force
+
+            Start-Process $MFTECmd -Wait -NoNewWindow `
+                -ArgumentList "-f `"$PARSED\MFT\$($mft.Name)`" --json `"$PARSED\MFT`""
+
+            # Rename MFTECmd output
+            Get-ChildItem "$PARSED\MFT" -Filter "*.json" | ForEach-Object {
+
+                # Default MFTECmd format:
+                # TIMESTAMP_MFTECmd_$MFT_Output.json
+                if ($_.Name -match '^\d{14}_MFTECmd_\$MFT_Output\.json$') {
+
+                    $newName = "${caseClean}_MFT_Output.json"
+                    Rename-Item $_.FullName $newName -Force
+                }
+            }
+        }
+
+
+        # =================================================
+        # Prefetch
+        # =================================================
+        if (Test-Path "$SRC\Windows\Prefetch") {
+
+            Log "[*] Prefetch" $LOG
+
+            $caseClean = ($caseName -split '_skadi')[0]
+
+            Start-Process $PECmd -Wait -NoNewWindow `
+                -ArgumentList "-d `"$SRC\Windows\Prefetch`" --json `"$PARSED\Prefetch`""
+
+            # Rename PECmd output
+            Get-ChildItem "$PARSED\Prefetch" -Filter "*.json" | ForEach-Object {
+
+                # Default PECmd format:
+                # TIMESTAMP_PECmd_Output.json
+                if ($_.Name -match '^\d{14}_PECmd_Output\.json$') {
+
+                    $newName = "${caseClean}_Prefetch_Output.json"
+                    Rename-Item $_.FullName $newName -Force
+                }
+            }
+        }
+
+
+        =================================================
+        No Registry – NTUSER.DAT
+        =================================================
+
+        $rebs = Get-ChildItem "$TOOLS\net9\RECmd\BatchExamples" -Filter "*.reb" -File
+
+        Get-ChildItem "$SRC\Users" -Directory -ErrorAction SilentlyContinue | ForEach-Object {
+
+            $ntuser = "$($_.FullName)\NTUSER.DAT"
+            if (-not (Test-Path $ntuser)) { return }
+
+            Log "[*] Registry NTUSER.DAT $($_.Name)" $LOG
+
+            foreach ($reb in $rebs) {
+
+                Start-Process $RECmd -Wait -NoNewWindow `
+                    -ArgumentList @(
+                        "-f","`"$ntuser`"",
+                        "--bn","`"$($reb.FullName)`"",
+                        "--csv","`"$PARSED\Registry`""
+                    )
+                    
+            }
 
 
             
-        # }
+        }
 
-        # $regRoot   = "$PARSED\Registry"
-        # $caseClean = ($caseName -split '_skadi')[0]
+        $regRoot   = "$PARSED\Registry"
+        $caseClean = ($caseName -split '_skadi')[0]
 
-        # # Move all CSVs up + add case prefix
-        # Get-ChildItem $regRoot -Recurse -File -Filter "*.csv" | ForEach-Object {
+        # Move all CSVs up + add case prefix
+        Get-ChildItem $regRoot -Recurse -File -Filter "*.csv" | ForEach-Object {
 
-        #     # Avoid double-prefixing
-        #     if ($_.Name -notmatch "^$caseClean`_") {
+            # Avoid double-prefixing
+            if ($_.Name -notmatch "^$caseClean`_") {
 
-        #         $newName = "${caseClean}_$($_.Name)"
-        #     }
-        #     else {
-        #         $newName = $_.Name
-        #     }
+                $newName = "${caseClean}_$($_.Name)"
+            }
+            else {
+                $newName = $_.Name
+            }
 
-        #     $dest = Join-Path $regRoot $newName
-        #     Move-Item $_.FullName $dest -Force
-        # }
+            $dest = Join-Path $regRoot $newName
+            Move-Item $_.FullName $dest -Force
+        }
 
-        # # Remove empty subdirectories (timestamp folders)
-        # Get-ChildItem $regRoot -Directory | Remove-Item -Recurse -Force
+        # Remove empty subdirectories (timestamp folders)
+        Get-ChildItem $regRoot -Directory | Remove-Item -Recurse -Force
 
 
         
-        # # =================================================
-        # # Shimcache
-        # # =================================================
+        # =================================================
+        # Shimcache
+        # =================================================
 
-        # if (Test-Path "$SRC\Windows\System32\config\SYSTEM") {
+        if (Test-Path "$SRC\Windows\System32\config\SYSTEM") {
 
-        #     Log "[*] Shimcache" $LOG
+            Log "[*] Shimcache" $LOG
 
-        #     $caseClean = ($caseName -split '_skadi')[0]
+            $caseClean = ($caseName -split '_skadi')[0]
 
-        #     Start-Process $Shimcache -Wait -NoNewWindow `
-        #         -ArgumentList "-f `"$SRC\Windows\System32\config\SYSTEM`" --csv `"$PARSED\Shimcache`""
+            Start-Process $Shimcache -Wait -NoNewWindow `
+                -ArgumentList "-f `"$SRC\Windows\System32\config\SYSTEM`" --csv `"$PARSED\Shimcache`""
 
-        #     # Rename AppCompatCacheParser output
-        #     Get-ChildItem "$PARSED\Shimcache" -Filter "*.csv" | ForEach-Object {
+            # Rename AppCompatCacheParser output
+            Get-ChildItem "$PARSED\Shimcache" -Filter "*.csv" | ForEach-Object {
 
-        #         # Default format:
-        #         # TIMESTAMP_WindowsXX_SYSTEM_AppCompatCache.csv
-        #         if ($_.Name -match '^\d{14}_.+_SYSTEM_AppCompatCache\.csv$') {
+                # Default format:
+                # TIMESTAMP_WindowsXX_SYSTEM_AppCompatCache.csv
+                if ($_.Name -match '^\d{14}_.+_SYSTEM_AppCompatCache\.csv$') {
 
-        #             $newName = "${caseClean}_Shimcache_AppCompatCache.csv"
-        #             Rename-Item $_.FullName $newName -Force
-        #         }
-        #     }
-        # }
+                    $newName = "${caseClean}_Shimcache_AppCompatCache.csv"
+                    Rename-Item $_.FullName $newName -Force
+                }
+            }
+        }
 
-        # # =================================================
-        # # SRUM
-        # # =================================================
+        # =================================================
+        # SRUM
+        # =================================================
 
-        # if (Test-Path "$SRC\Windows\System32\sru\SRUDB.dat") {
+        if (Test-Path "$SRC\Windows\System32\sru\SRUDB.dat") {
 
-        #     Log "[*] SRUM" $LOG
+            Log "[*] SRUM" $LOG
 
-        #     $caseClean = ($caseName -split '_skadi')[0]
+            $caseClean = ($caseName -split '_skadi')[0]
 
-        #     Start-Process $SrumECmd -Wait -NoNewWindow `
-        #         -ArgumentList "-d `"$SRC\Windows\System32\sru`" --csv `"$PARSED\SRUM`""
+            Start-Process $SrumECmd -Wait -NoNewWindow `
+                -ArgumentList "-d `"$SRC\Windows\System32\sru`" --csv `"$PARSED\SRUM`""
 
-        #     # Rename SRUM outputs
-        #     Get-ChildItem "$PARSED\SRUM" -Filter "*.csv" | ForEach-Object {
+            # Rename SRUM outputs
+            Get-ChildItem "$PARSED\SRUM" -Filter "*.csv" | ForEach-Object {
 
-        #         # Default format:
-        #         # TIMESTAMP_SrumECmd_<Artifact>_Output.csv
-        #         if ($_.Name -match '^\d{14}_SrumECmd_(.+)$') {
+                # Default format:
+                # TIMESTAMP_SrumECmd_<Artifact>_Output.csv
+                if ($_.Name -match '^\d{14}_SrumECmd_(.+)$') {
 
-        #             $newName = "${caseClean}_$($Matches[1])"
-        #             Rename-Item $_.FullName $newName -Force
-        #         }
-        #     }
-        # }
+                    $newName = "${caseClean}_$($Matches[1])"
+                    Rename-Item $_.FullName $newName -Force
+                }
+            }
+        }
 
 
         Log "[✓] Completed $caseName" $LOG
