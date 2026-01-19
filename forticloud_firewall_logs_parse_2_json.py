@@ -1,9 +1,7 @@
-import os
-import csv
-import json
-import re
+import os, csv, json, re
 
-BASE_DIR = r"C:\dfir\client_data"
+# BASE_DIR = r"C:\dfir\client_data"
+BASE_DIR = os.path.join(os.getcwd(), "client_data")
 
 # =========================
 # REGEX
