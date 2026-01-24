@@ -1,0 +1,56 @@
+SQLi / XSS
+
+http.response.status_code: 200 and event.original : ("*' OR 1=1*" or "*UNION SELECT*" or "*--*" or "*| whoami*" or "*<script>*" or "*alert(*" or "*onerror=*" or "*%3Cscript%3E*")
+
+
+Security Misconfiguration
+
+http.response.status_code: 200 and event.original : ("*.env" or "*.git*" or "/phpinfo.php" or "/server-status")
+
+etc_passwd
+http.response.status_code: 200 and event.original: "*etc/passwd*"
+
+
+directory traversal
+http.response.status_code: 200 and event.original : ("*/../../*" or "*..%2f..%2f*")
+
+cmd exec
+http.response.status_code: 200 and event.original : ("*;whoami*" or "*|cmd*" or "*&& powershell*")
+
+useragent
+http.response.status_code: 200 and event.original : ("*sqlmap*" or "*nikto*" or "*nmap*" or "*curl*" or "*python*")
+
+
+LFI
+
+http.response.status_code: 200 and event.original :("*php://*" or "*file://*" or "*input://*" or "*data://*")
+
+
+RFI
+http.response.status_code: 200 and event.original :("http://*" or "https://*") and (event.original : "*.php?*=")
+
+
+
+http.response.status_code: 200 and event.original :("*/admin*" or "*/backup*" or "*/old*" or "*/test*")
+
+Sensitive Files
+http.response.status_code: 200 and event.original :("*.bak" or "*.old" or "*.zip" or "*.tar.gz" or "*.sql")
+
+Command Injection
+http.response.status_code: 200 and event.original :( "*wget*" or "*curl*http*" or "*cmd*" or "*powershell -enc*" or "*Invoke-WebRequest*" or "*whoami*")
+
+
+Recon & Scanning Tools
+http.response.status_code: 200 and event.original : ("*masscan*" or "*zmap*" or "*dirbuster*" or "*ffuf*" or "*wpscan*")
+
+
+Web Shell Indicators
+http.response.status_code: 200 and event.original : ("*cmd*" or "*exec*" or "*system*" or "*shell*" or "*c99*" or "*r57*")
+
+
+HTTP Method Abuse
+http.response.status_code: 200 and http.request.method : ("PUT" or "DELETE" or "TRACE" or "CONNECT")
+
+
+Open Redirect
+http.response.status_code: 200 and event.original : ("*redirect=*" or "*url=http*" or "*next=http*")

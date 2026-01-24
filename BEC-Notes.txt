@@ -1,0 +1,17 @@
+https://purview.microsoft.com/
+
+Unified Audit Log
+	https://security.microsoft.com/auditlogsearch
+
+Message Trace Logs
+	https://admin.exchange.microsoft.com/#/messagetrace
+
+Azure Directory Logs
+	https://entra.microsoft.com/#view/Microsoft_AAD_UsersAndTenants/UserManagementMenuBlade/~/SignIns/menuId/
+	
+Users List	
+	https://entra.microsoft.com/#view/Microsoft_AAD_UsersAndTenants/UserManagementMenuBlade/~/AllUsers/menuId/
+	
+	
+O365-Extracter-PWC
+	https://github.com/PwC-IR/Office-365-Extractor

@@ -8,12 +8,10 @@ $ErrorActionPreference = "Stop"
 # ---------------- BASE PATHS ----------------
 # $BASE   = "C:\dfir_copy"
 $BASE = (Get-Location).Path
-Write-Host $BASE
 $TOOLS  = "$BASE\tools\eztools"
 $TMP    = "$BASE\tools\_tmp"
 $CLIENT = "$BASE\client_data"
 
-Write-Host $BASE
 
 # ---------------- LOGGING ----------------
 function New-Logger($BASE) {
@@ -129,35 +127,35 @@ foreach ($client in $clients) {
         }
 
 
-        # =================================================
-        # EVTX → JSON (PREFIX WITH CLIENT NAME)
-        # =================================================
-        $evtx = "$SRC\Windows\System32\winevt\Logs"
+        # # =================================================
+        # # EVTX → JSON (PREFIX WITH CLIENT NAME)
+        # # =================================================
+        # $evtx = "$SRC\Windows\System32\winevt\Logs"
 
-        # Extract clean client name (before _skadi_)
-        $clientPrefix = ($caseName -split '_skadi_')[0]
+        # # Extract clean client name (before _skadi_)
+        # $clientPrefix = ($caseName -split '_skadi_')[0]
 
-        if (Test-Path $evtx) {
-            Log "[*] EVTX" $LOG
-            Get-ChildItem $evtx -Filter "*.evtx" -File | ForEach-Object {
+        # if (Test-Path $evtx) {
+        #     Log "[*] EVTX" $LOG
+        #     Get-ChildItem $evtx -Filter "*.evtx" -File | ForEach-Object {
 
-                $jsonName = "${clientPrefix}_$($_.BaseName).json"
+        #         $jsonName = "${clientPrefix}_$($_.BaseName).json"
 
-                Start-Process $EvtxECmd -Wait -NoNewWindow `
-                    -ArgumentList @(
-                        "-f","`"$($_.FullName)`"",
-                        "--json","`"$PARSED\EventLogs`"",
-                        "--jsonf","`"$jsonName`""
-                    )
-                    Get-ChildItem "$PARSED\EventLogs" -Filter "*.json" | ForEach-Object {
-                    $newName = $_.Name -replace '_skadi_', '_'
-                    if ($newName -ne $_.Name) {
-                        Rename-Item $_.FullName $newName -Force
-                    }
-                    }
-            }
+        #         Start-Process $EvtxECmd -Wait -NoNewWindow `
+        #             -ArgumentList @(
+        #                 "-f","`"$($_.FullName)`"",
+        #                 "--json","`"$PARSED\EventLogs`"",
+        #                 "--jsonf","`"$jsonName`""
+        #             )
+        #             Get-ChildItem "$PARSED\EventLogs" -Filter "*.json" | ForEach-Object {
+        #             $newName = $_.Name -replace '_skadi_', '_'
+        #             if ($newName -ne $_.Name) {
+        #                 Rename-Item $_.FullName $newName -Force
+        #             }
+        #             }
+        #     }
 
-        }
+        # }
 
 
 
