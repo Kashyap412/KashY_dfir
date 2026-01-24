@@ -1,0 +1,25 @@
+services:
+  plaso:
+    image: log2timeline/plaso:latest
+    container_name: plaso
+
+    # Keep container alive
+    entrypoint: ["/bin/sh", "-c"]
+    command: ["sleep infinity"]
+
+    # 🔥 Resource limits
+    deploy:
+      resources:
+        limits:
+          cpus: "2.0"
+          memory: 6g
+
+    volumes:
+      - ./:/work:ro
+      - ./evidence:/data/evidence:ro
+      - ./output:/data/output
+      - ./tmp:/data/tmp
+      - ./filters:/data/filters
+
+    environment:
+      TZ: UTC

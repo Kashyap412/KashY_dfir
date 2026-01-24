@@ -1,0 +1,25 @@
+_index : dfir-evtx* and evtx.Channel : *Security* and evtx.EventId : 4625
+
+_index : dfir-evtx* and evtx.Channel : *Security* and evtx.EventId : 4720
+
+_index : dfir-evtx* and evtx.Channel : *Security* and (evtx.EventId : 104 or evtx.EventId : 1102)
+
+_index : dfir-evtx* and evtx.Channel : *Service Control Manager* and (evtx.EventId : 7036 or evtx.EventId : 4697 or evtx.EventId : 7040)
+
+_index : dfir-evtx* and evtx.Channel : *System* and evtx.EventId :7045
+
+_index : dfir-evtx* and evtx.Channel : *TerminalServices* and (evtx.EventId : 21 or evtx.EventId : 22 or evtx.EventId : 23 or evtx.EventId : 24 or evtx.EventId : 25)
+
+_index : dfir-evtx* and evtx.Channel : *PowerShell* and (evtx.EventId : 400 or evtx.EventId : 403 or evtx.EventId : 600)
+
+_index : dfir-evtx* and  evtx.MapDescription : *Scheduled* and (evtx.EventId : 100 or evtx.EventId : 101 or evtx.EventId : 102 or evtx.EventId : 103 or evtx.EventId : 111 or evtx.EventId : 200)
+
+
+
+event.original : (*winscp* or *putty* or *anydesk* or *rustdesk* or *rclone*)
+
+event.original : (*tasklist* and *tokens*)
+
+event.original : (*GENTLEMEN* or *CMd.eXe* or *mimikatz*)
+
+Not (log.file.path : *CHKTRWS0360* or *CHKB20LT050* or *ABDSHENDT2599* or *ABDE94LT0357* or *CHKVCENTE* or *CHKB20LT040* or *ETLCOMVLTMA001* )

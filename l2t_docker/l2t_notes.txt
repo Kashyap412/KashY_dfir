@@ -1,0 +1,44 @@
+docker exec plaso log2timeline.py --parsers list
+
+docker exec plaso psort.py --output_time_zone UTC -o list
+
+Expand-Archive .\evidence\SRV015_skadi.zip .\evidence\SRV015_skadi
+
+
+
+docker exec plaso log2timeline.py --parsers winevtx --temporary-directory /data/tmp --storage-file /data/output/SRV015.plaso /data/evidence/SRV015_skadi/C/Windows/System32/winevt/Logs
+ 
+docker exec plaso log2timeline.py --parsers winevtx --temporary-directory /data/tmp --storage-file /data/output/11T3GL3.plaso /data/evidence/11T3GL3/C/Windows/System32/winevt/Logs
+
+docker exec plaso pinfo.py /data/output/11T3GL3.plaso
+
+
+
+docker exec plaso psort.py --output_time_zone UTC -o dynamic -w /data/output/11T3GL3.csv /data/output/11T3GL3.plaso
+
+
+
+
+docker exec plaso log2timeline.py --parsers winreg --temporary-directory /data/tmp --storage-file /data/output/ADC_skadi_amc.plaso /data/evidence/ADC_skadi
+
+
+
+
+docker exec plaso log2timeline.py --file_filter /data/filters/l2t_filter_windows.yaml --temporary-directory /data/tmp --storage-file /data/output/ADC_skadi.plaso /data/evidence/ADC_skadi
+
+
+docker exec plaso psort.py --output_time_zone UTC -o dynamic -w /data/output/ADC_skadi.csv /data/output/ADC_skadi.plaso
+
+
+
+docker exec plaso psort.py --event_filter /data/filters/event_filter.yaml --output_time_zone UTC -o dynamic -w /data/output/ADC_skadi_filtered.csv /data/output/ADC_skadi.plaso
+
+
+docker exec plaso psort.py --output_time_zone UTC -o dynamic -w /data/output/ADC_skadi_filtered.csv /data/output/ADC_skadi.plaso
+
+
+
+
+docker exec plaso log2timeline.py --parsers winreg,webhist,win7_slow,winxp_slow --temporary-directory /data/tmp --storage-file /data/output/ADC_skadi_all.plaso /data/evidence/ADC_skadi
+docker exec plaso pinfo.py /data/output/ADC_skadi_all.plaso
+docker exec plaso psort.py --output_time_zone UTC -o dynamic -w /data/output/ADC_skadi_all.csv /data/output/ADC_skadi_all.plaso

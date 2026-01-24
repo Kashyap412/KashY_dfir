@@ -1,0 +1,92 @@
+---
+description: File system metadata files.
+type: include
+paths:
+- 'C/$LogFile'
+- 'C/$MFT'
+
+---
+description: Windows Registry hives.
+type: include
+paths:
+  - '/C/Windows/System32/config/SAM'
+  - '/C/Windows/System32/config/SYSTEM'
+  - '/C/Windows/System32/config/SOFTWARE'
+  - '/C/Windows/System32/config/SECURITY'
+  - '/C/Users/.+/NTUSER.DAT'
+  - '/C/Users/.+/AppData/Local/Microsoft/Windows/UsrClass.dat'
+
+# ---
+# description: Windows Event Logs.
+# type: include
+# paths:
+#   - '/C/Windows/System32/winevt/Logs/Security.evtx'
+#   - '/C/Windows/System32/winevt/Logs/System.evtx'
+#   - '/C/Windows/System32/winevt/Logs/Powershell.evtx'
+#   - '/C/Windows/System32/winevt/Logs/Microsoft-Windows-TaskScheduler%4Operational.evtx'
+#   - '/C/Windows/System32/winevt/Logs/Microsoft-Windows-TerminalServices-LocalSessionManager.evtx'
+#   - '/C/Windows/System32/winevt/Logs/Microsoft-Windows-TerminalServices-RemoteConnectionManager.evtx'
+#   - '/C/Windows/System32/winevt/Logs/Microsoft-WindowsRemoteDesktopServicesRdpCoreTS%4Operational.evtx'
+#   - '/C/Windows/System32/winevt/Logs/Microsoft-WindowsWinRM%4Operational.evtx'
+#   - '/C/Windows/System32/winevt/Logs/Microsoft-Windows-PowerShell%4Operational.evtx'
+#   - '/C/Windows/System32/winevt/Logs/Application.evtx'
+#   - '/C/Windows/System32/winevt/Logs/Microsoft-Windows-Bitx-Client%4Operational.evtx'
+#   - '/C/Windows/System32/winevt/Logs/Microsoft-Windows-Defender%4Operational.evtx'
+#   - '/C/Windows/System32/winevt/Logs/Microsoft-WMI-Activity%4Operational.evtx'
+#   - '/C/Windows/System32/winevt/Logs/Microsoft-Windows-User Profile Service%4Operational.evtx'
+#   - '/C/Windows/System32/winevt/Logs/Setup.evtx'
+#   - '/C/Windows/System32/winevt/Logs/Windows PowerShell.evtx'
+  
+---
+description: Prefetch files.
+type: include
+paths:
+  - '/C/Windows/Prefetch/.+\.pf'
+
+
+---
+description: Scheduled Tasks.
+type: include
+paths:
+  - '/C/Windows/System32/Tasks/.+'
+
+---
+description: Amcache.
+type: include
+paths:
+  - '/C/Windows/AppCompat/Programs/Amcache.hve'
+
+---
+description: Recent files (LNK).
+type: include
+paths:
+  - '/C/Users/.+/AppData/Roaming/Microsoft/Windows/Recent/.+\.lnk'
+
+---
+description: PowerShell history.
+type: include
+paths:
+  - '/C/Users/.+/AppData/Roaming/Microsoft/Windows/PowerShell/PSReadLine/.+'
+
+
+---
+description: Browser artifacts
+type: include
+paths:
+  # IE / Edge (legacy)
+  - '/C/Users/*/AppData/Local/Microsoft/Windows/WebCache/*.dat'
+
+  # Firefox
+  - '/C/Users/*/AppData/Roaming/Mozilla/Firefox/Profiles/*/*.sqlite'
+
+  # Chrome
+  - '/C/Users/*/AppData/Local/Google/Chrome/User Data/*/History'
+  - '/C/Users/*/AppData/Local/Google/Chrome/User Data/*/Current Session'
+  - '/C/Users/*/AppData/Local/Google/Chrome/User Data/*/Last Session'
+ 
+ 
+description: Jump Lists
+type: include
+paths:
+  - '/C/Users/*/AppData/Roaming/Microsoft/Windows/Recent/AutomaticDestinations/*.automaticDestinations-ms'
+  - '/C/Users/*/AppData/Roaming/Microsoft/Windows/Recent/CustomDestinations/*.customDestinations-ms'

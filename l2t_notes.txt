@@ -1,0 +1,21 @@
+log2timeline.py --storage-file /data/output/SRV015_skadi.plaso --temporary-directory /data/tmp  /data/evidence
+docker exec plaso log2timeline.py --parsers
+
+docker exec plaso log2timeline.py --storage-file /data/output/SRV015_skadi.plaso --temporary-directory /data/tmp  /data/evidence
+
+
+
+
+
+docker exec plaso log2timeline.py -f "C:\clientdata\Tools\l2t_docker\evidence\filter_windows.txt" --storage-file /data/output/SRV015_skadi.plaso --temporary-directory /data/tmp  /data/evidence
+
+
+docker compose down
+
+
+
+docker exec plaso log2timeline.py `
+  --artifact_filters_file /data/evidence/windows_ir.artifacts `
+  --storage-file /data/output/SRV015_skadi.plaso `
+  --temporary-directory /data/tmp `
+  /data/evidence
