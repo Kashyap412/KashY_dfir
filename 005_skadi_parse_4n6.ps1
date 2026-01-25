@@ -7,7 +7,7 @@ $ErrorActionPreference = "Stop"
 
 # ---------------- BASE PATHS ----------------
 # $BASE   = "C:\dfir_copy"
-$BASE = (Get-Location).Path
+$BASE = "temp"
 $TOOLS  = "$BASE\tools\eztools"
 $TMP    = "$BASE\tools\_tmp"
 $CLIENT = "$BASE\client_data"
@@ -79,12 +79,19 @@ $clients = Get-ChildItem $CLIENT -Directory
 foreach ($client in $clients) {
 
     $SUBMIT = "$($client.FullName)\submit_skadi"
-    if (-not (Test-Path $SUBMIT)) { continue }
+    if (-not (Test-Path $SUBMIT)) { 
+        
+        Write-Host "submit_skadi Folder Missing"
+        continue 
+    }
 
     $OUT = "$($client.FullName)\output"
 
     $zips = Get-ChildItem $SUBMIT -Filter "*_skadi.zip" -File
-    if (-not $zips) { continue }
+    if (-not $zips) { 
+        Write-Host "No Skadi avaliable to Parse"
+        continue 
+    }
 
     foreach ($zip in $zips) {
 
@@ -97,16 +104,12 @@ foreach ($client in $clients) {
 
 
         # ---------- Extract ZIP ----------
-        # Expand-Archive $zip.FullName $EXTRACT -Force
+        Expand-Archive $zip.FullName $EXTRACT -Force
         $SRC = "$EXTRACT\C"
         
         # ---------- Create folders ----------
-        $dirs = @(
-            $EXTRACT,$PARSED,
-            "$PARSED\EventLogs","$PARSED\Prefetch","$PARSED\Amcache",
-            "$PARSED\Shimcache","$PARSED\JumpList","$PARSED\LNK",
-            "$PARSED\SRUM","$PARSED\MFT","$PARSED\Registry"
-        )
+
+        $dirs = @( $EXTRACT,$PARSED )
         $dirs | ForEach-Object { New-Item -ItemType Directory -Force -Path $_ | Out-Null }
 
         # =================================================
@@ -114,6 +117,7 @@ foreach ($client in $clients) {
         # =================================================
         if (Test-Path "$SRC\Windows\AppCompat\Programs\Amcache.hve") {
             Log "[*] Amcache" $LOG
+            New-Item -ItemType Directory -Force -Path $PARSED\Amcache | Out-Null 
             Start-Process $Amcache -Wait -NoNewWindow `
                 -ArgumentList "-f `"$SRC\Windows\AppCompat\Programs\Amcache.hve`" --csv `"$PARSED\Amcache`""
             Get-ChildItem "$PARSED\Amcache\*.csv" | ForEach-Object {Rename-Item $_.FullName "$PARSED\Amcache\$caseName`_$($_.Name)" -Force}
@@ -127,49 +131,142 @@ foreach ($client in $clients) {
         }
 
 
-        # # =================================================
-        # # EVTX → JSON (PREFIX WITH CLIENT NAME)
-        # # =================================================
-        # $evtx = "$SRC\Windows\System32\winevt\Logs"
+        # =================================================
+        # EVTX → JSON (PREFIX WITH CLIENT NAME)
+        # =================================================
+        
+        $evtx = "$SRC\Windows\System32\winevt\Logs"
 
-        # # Extract clean client name (before _skadi_)
-        # $clientPrefix = ($caseName -split '_skadi_')[0]
+        # Extract skadi name (before _skadi_)
+        $clientPrefix = ($caseName -split '_skadi_')[0]
 
-        # if (Test-Path $evtx) {
-        #     Log "[*] EVTX" $LOG
-        #     Get-ChildItem $evtx -Filter "*.evtx" -File | ForEach-Object {
+        # Ensure output dir exists
+        $null = New-Item -ItemType Directory -Force -Path "$PARSED\EventLogs"
 
-        #         $jsonName = "${clientPrefix}_$($_.BaseName).json"
+        # ================= EVENT MAP =================
+        $EventMap = @{
 
-        #         Start-Process $EvtxECmd -Wait -NoNewWindow `
-        #             -ArgumentList @(
-        #                 "-f","`"$($_.FullName)`"",
-        #                 "--json","`"$PARSED\EventLogs`"",
-        #                 "--jsonf","`"$jsonName`""
-        #             )
-        #             Get-ChildItem "$PARSED\EventLogs" -Filter "*.json" | ForEach-Object {
-        #             $newName = $_.Name -replace '_skadi_', '_'
-        #             if ($newName -ne $_.Name) {
-        #                 Rename-Item $_.FullName $newName -Force
-        #             }
-        #             }
-        #     }
+            "Security.evtx" = @(
+                1102,4618,4624,4625,4648,4649,4672,4719,
+                4720,4723,4724,4726,4728,4732,4735,4738,
+                4740,4742,4756,4765,4766,4794,
+                4897,4964,5124,4698,4688
+            )
 
-        # }
+            "System.evtx" = @(104,7036,7045)
+
+            "Windows PowerShell.evtx" = @(400,403,600,800)
+
+            "Microsoft-Windows-PowerShell%4Operational.evtx" = @(
+                400,403,4100,4103,4104
+            )
+
+            "Microsoft-Windows-TaskScheduler%4Operational.evtx" = @(129)
+
+            "Microsoft-Windows-TerminalServices-LocalSessionManager.evtx" = @(
+                21,22,24,25
+            )
+
+            "Microsoft-Windows-TerminalServices-RemoteConnectionManager.evtx" = @(1149)
+
+            "Microsoft-WindowsRemoteDesktopServicesRdpCoreTS%4Operational.evtx" = @(98)
+
+            "Microsoft-Windows-WinRM%4Operational.evtx" = @(6)
+
+            "Application.evtx" = @(1000)
+
+            "Microsoft-Windows-Bits-Client%4Operational.evtx" = @(59)
+
+            "Microsoft-Windows-Defender%4Operational.evtx" = @(1116,1117)
+
+            "Microsoft-Windows-WMI-Activity%4Operational.evtx" = @(5857,5860,5861)
+
+            "Microsoft-Windows-User Profile Service%4Operational.evtx" = @(5)
+        }
+
+        # ================= PROCESSING =================
+        if (Test-Path $evtx) {
+
+            Log "[*] EVTX selective parsing (ALL logs)" $LOG
+
+            foreach ($evtxFile in $EventMap.Keys) {
+
+                $fullEvtx = Join-Path $evtx $evtxFile
+                if (-not (Test-Path $fullEvtx)) { continue }
+
+                $evtxName = [System.IO.Path]::GetFileNameWithoutExtension($evtxFile)
+                $tempCsv  = Join-Path $PARSED\EventLogs "$clientPrefix`_$evtxName`_ALL.csv"
+
+                # ---- Step 1: Full parse
+                Start-Process $EvtxECmd -Wait -NoNewWindow `
+                    -ArgumentList @(
+                        "-f","`"$fullEvtx`"",
+                        "--csv","`"$PARSED\EventLogs`"",
+                        "--csvf","`"$clientPrefix`_$evtxName`_ALL.csv`""
+                    )
+
+                if (-not (Test-Path $tempCsv)) { continue }
+
+                # ---- Step 2: Filter per Event ID
+                $csv = Import-Csv $tempCsv
+
+                foreach ($eid in $EventMap[$evtxFile]) {
+
+                    $rows = $csv | Where-Object { $_.EventId -eq $eid }
+
+                    if ($rows.Count -gt 0) {
+                        $outFile = Join-Path $PARSED\EventLogs `
+                            "$clientPrefix`_$evtxName`_$eid.csv"
+
+                        $rows | Export-Csv $outFile -NoTypeInformation
+                    }
+                }
+
+                # ---- Step 3: Cleanup
+                Remove-Item $tempCsv -Force
+            }
+        }
+
 
 
 
         # =================================================
-        # Jumplists
+        # Jumplists 
         # =================================================
+
+        $jumpRoot = Join-Path $PARSED "JumpList"
+        New-Item -ItemType Directory -Force -Path $jumpRoot | Out-Null
+
         Get-ChildItem "$SRC\Users" -Directory -ErrorAction SilentlyContinue | ForEach-Object {
-            $jl = "$($_.FullName)\AppData\Roaming\Microsoft\Windows\Recent\AutomaticDestinations"
-            if (Test-Path $jl) {
-                Log "[*] Jumplist $($_.Name)" $LOG
+
+            $user = $_.Name
+
+            $auto = "$($_.FullName)\AppData\Roaming\Microsoft\Windows\Recent\AutomaticDestinations"
+            if (Test-Path $auto) {
+                Log "[*] Jumplist AutomaticDestinations ($user)" $LOG
                 Start-Process $JLECmd -Wait -NoNewWindow `
-                    -ArgumentList "-d `"$jl`" --json `"$PARSED\JumpList`""
-            
-                    
+                    -ArgumentList "-d `"$auto`" --csv `"$jumpRoot`""
+            }
+
+            $custom = "$($_.FullName)\AppData\Roaming\Microsoft\Windows\Recent\CustomDestinations"
+            if (Test-Path $custom) {
+                Log "[*] Jumplist CustomDestinations ($user)" $LOG
+                Start-Process $JLECmd -Wait -NoNewWindow `
+                    -ArgumentList "-d `"$custom`" --csv `"$jumpRoot`""
+            }
+        }
+        Get-ChildItem $jumpRoot -File | ForEach-Object {
+
+            if ($_.Name -match '^\d{14}_AutomaticDestinations\.csv$') {
+                Rename-Item $_.FullName `
+                    (Join-Path $jumpRoot "${caseClean}_AutomaticDestinations.csv") `
+                    -Force
+            }
+
+            if ($_.Name -match '^\d{14}_CustomDestinations\.csv$') {
+                Rename-Item $_.FullName `
+                    (Join-Path $jumpRoot "${caseClean}_CustomDestinations.csv") `
+                    -Force
             }
         }
 
@@ -180,23 +277,12 @@ foreach ($client in $clients) {
 
         $caseClean = ($caseName -split '_skadi')[0]
 
-        Start-Process $LECmd -Wait -NoNewWindow `
-            -ArgumentList "-d `"$SRC`" --all --json `"$PARSED\LNK`""
-
-        # Rename LECmd output
-        Get-ChildItem "$PARSED\LNK" -Filter "*.json" | ForEach-Object {
-
-            # Match default LECmd format: TIMESTAMP_LECmd_Output.json
-            if ($_.Name -match '^\d{14}_LECmd_Output\.json$') {
-
-                $newName = "${caseClean}_lnk_Output.json"
-                Rename-Item $_.FullName $newName -Force
-            }
-        }
+        Start-Process $LECmd -Wait -NoNewWindow -ArgumentList "-d `"$SRC`" --all --csv `"$PARSED\LNK`" --csvf `"$caseClean`_lnk_Output.csv`""
 
         # =================================================
-        # MFT 
+        # MFT
         # =================================================
+
         $mft = Get-ChildItem $SRC -Force -ErrorAction SilentlyContinue |
             Where-Object { $_.Name -eq '$MFT' }
 
@@ -206,23 +292,62 @@ foreach ($client in $clients) {
 
             $caseClean = ($caseName -split '_skadi')[0]
 
-            Copy-Item $mft.FullName "$PARSED\MFT\$($mft.Name)" -Force
+            $mftOutDir = Join-Path $PARSED "MFT"
+            New-Item -ItemType Directory -Force -Path $mftOutDir | Out-Null
 
+            $copiedMft = Join-Path $mftOutDir $mft.Name
+            $outCsv    = Join-Path $mftOutDir "${caseClean}_MFT_Output.csv"
+
+            # Copy raw $MFT
+            Copy-Item $mft.FullName $copiedMft -Force
+
+            # Run MFTECmd (CSV)
             Start-Process $MFTECmd -Wait -NoNewWindow `
-                -ArgumentList "-f `"$PARSED\MFT\$($mft.Name)`" --json `"$PARSED\MFT`""
+                -ArgumentList "-f `"$copiedMft`" --csv `"$mftOutDir`" --csvf `"$caseClean`_MFT_Output.csv`""
 
-            # Rename MFTECmd output
-            Get-ChildItem "$PARSED\MFT" -Filter "*.json" | ForEach-Object {
+            # Remove raw $MFT
+            Remove-Item $copiedMft -Force
 
-                # Default MFTECmd format:
-                # TIMESTAMP_MFTECmd_$MFT_Output.json
-                if ($_.Name -match '^\d{14}_MFTECmd_\$MFT_Output\.json$') {
+            # =================================================
+            # Split CSV if larger than 200 MB
+            # =================================================
+            $maxSizeMB = 100
+            $maxBytes  = $maxSizeMB * 1MB
 
-                    $newName = "${caseClean}_MFT_Output.json"
-                    Rename-Item $_.FullName $newName -Force
+            if ((Get-Item $outCsv).Length -gt $maxBytes) {
+
+                Write-Host "[*] Splitting large MFT CSV (>100MB)"
+
+                $reader = [System.IO.StreamReader]::new($outCsv)
+                $header = $reader.ReadLine()
+
+                $part = 1
+                $partPath = Join-Path $mftOutDir "${caseClean}_MFT_Output_part$part.csv"
+                $writer = [System.IO.StreamWriter]::new($partPath)
+                $writer.WriteLine($header)
+
+                while (($line = $reader.ReadLine()) -ne $null) {
+
+                    if ((Get-Item $partPath).Length -ge $maxBytes) {
+                        $writer.Close()
+                        $part++
+
+                        $partPath = Join-Path $mftOutDir "${caseClean}_MFT_Output_part$part.csv"
+                        $writer = [System.IO.StreamWriter]::new($partPath)
+                        $writer.WriteLine($header)
+                    }
+
+                    $writer.WriteLine($line)
                 }
+
+                $writer.Close()
+                $reader.Close()
+
+                # Remove original oversized CSV
+                Remove-Item $outCsv -Force
             }
         }
+
 
 
         # =================================================
@@ -234,26 +359,15 @@ foreach ($client in $clients) {
 
             $caseClean = ($caseName -split '_skadi')[0]
 
-            Start-Process $PECmd -Wait -NoNewWindow `
-                -ArgumentList "-d `"$SRC\Windows\Prefetch`" --json `"$PARSED\Prefetch`""
-
-            # Rename PECmd output
-            Get-ChildItem "$PARSED\Prefetch" -Filter "*.json" | ForEach-Object {
-
-                # Default PECmd format:
-                # TIMESTAMP_PECmd_Output.json
-                if ($_.Name -match '^\d{14}_PECmd_Output\.json$') {
-
-                    $newName = "${caseClean}_Prefetch_Output.json"
-                    Rename-Item $_.FullName $newName -Force
-                }
-            }
+            # Start-Process $PECmd -Wait -NoNewWindow -ArgumentList "-d `"$SRC\Windows\Prefetch`" --csv `"$PARSED\Prefetch`" --csvf `"$caseClean`_Prefetch_Output.csv`""
+            Start-Process $PECmd -Wait -NoNewWindow -ArgumentList "-d `"$SRC\Windows\Prefetch`" --json `"$PARSED\Prefetch`" --jsonf `"$caseClean`_Prefetch_Output.json`""
         }
 
 
-        =================================================
-        No Registry – NTUSER.DAT
-        =================================================
+
+        # =================================================
+        # Registry
+        # =================================================
 
         $rebs = Get-ChildItem "$TOOLS\net9\RECmd\BatchExamples" -Filter "*.reb" -File
 
@@ -274,8 +388,6 @@ foreach ($client in $clients) {
                     )
                     
             }
-
-
             
         }
 
@@ -314,19 +426,7 @@ foreach ($client in $clients) {
             $caseClean = ($caseName -split '_skadi')[0]
 
             Start-Process $Shimcache -Wait -NoNewWindow `
-                -ArgumentList "-f `"$SRC\Windows\System32\config\SYSTEM`" --csv `"$PARSED\Shimcache`""
-
-            # Rename AppCompatCacheParser output
-            Get-ChildItem "$PARSED\Shimcache" -Filter "*.csv" | ForEach-Object {
-
-                # Default format:
-                # TIMESTAMP_WindowsXX_SYSTEM_AppCompatCache.csv
-                if ($_.Name -match '^\d{14}_.+_SYSTEM_AppCompatCache\.csv$') {
-
-                    $newName = "${caseClean}_Shimcache_AppCompatCache.csv"
-                    Rename-Item $_.FullName $newName -Force
-                }
-            }
+                -ArgumentList "-f `"$SRC\Windows\System32\config\SYSTEM`" --csv `"$PARSED\Shimcache`" --csvf `"$caseClean`_Shimcache_AppCompatCache.csv`""
         }
 
         # =================================================
@@ -358,6 +458,7 @@ foreach ($client in $clients) {
 
         Log "[✓] Completed $caseName" $LOG
     }
+    Write-Host "SKADI DONE All clients & cases processed successfully"
+
 }
 
-Write-Host "`nSKADI DONE All clients & cases processed successfully"

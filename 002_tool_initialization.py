@@ -1,44 +1,90 @@
-import os, zipfile, urllib.request, subprocess, shutil
+import os
+import zipfile
+import urllib.request
+import subprocess
+import shutil
+from pathlib import Path
 
-BASE = os.getcwd()
-TOOLS = os.path.join(BASE, "tools")
-EZ    = os.path.join(TOOLS, "eztools")
-CYLR  = os.path.join(TOOLS, "CyLR")
-TMP   = os.path.join(TOOLS, "_tmp")
-CONF  = os.path.join(CYLR, "cylr-win.conf")
+# ---------------- USER PROMPT ----------------
+RUN_EZ_INSTALL = input(
+    "Run Eric Zimmerman Tools installer now? (y/n): "
+).strip().lower() == "y"
+
+# ---------------- CONFIG ----------------
+BASE = Path("temp").resolve()
+TOOLS = BASE / "tools"
+EZ    = TOOLS / "eztools"
+CYLR  = TOOLS / "CyLR"
+TMP   = TOOLS / "_tmp"
+CONF  = CYLR / "cylr-win.conf"
 
 EZ_URL   = "https://download.ericzimmermanstools.com/Get-ZimmermanTools.zip"
 CYLR_URL = "https://github.com/orlikoski/CyLR/releases/download/2.2.0/CyLR_win-x64.zip"
-CONF_URL = "https://raw.githubusercontent.com/Kashyap412/KashY_dfir/main/cylr-win.conf"
+CONF_URL = "https://raw.githubusercontent.com/Kashyap412/test/refs/heads/main/cylr-win.conf"
 
+# ---------------- HELPERS ----------------
+def safe_extract(zip_path: Path, dest: Path):
+    with zipfile.ZipFile(zip_path) as z:
+        for member in z.namelist():
+            target = dest / member
+            if not str(target.resolve()).startswith(str(dest.resolve())):
+                raise Exception(f"[!] Zip path traversal blocked: {member}")
+        z.extractall(dest)
+
+def download(url: str, dest: Path):
+    print(f"[↓] Downloading {url}")
+    urllib.request.urlretrieve(url, dest)
+
+def tool_exists(path: Path, filename: str):
+    return any(p.name.lower() == filename.lower() for p in path.rglob("*"))
+
+# ---------------- DIR SETUP ----------------
 for d in (EZ, CYLR, TMP):
-    os.makedirs(d, exist_ok=True)
+    d.mkdir(parents=True, exist_ok=True)
 
 # ---------------- EZ TOOLS ----------------
-if not any("EvtxECmd.exe" in f for _,_,fs in os.walk(EZ) for f in fs):
-    ez_zip = os.path.join(TMP, "ez.zip")
-    urllib.request.urlretrieve(EZ_URL, ez_zip)
-    zipfile.ZipFile(ez_zip).extractall(TMP)
+if not tool_exists(EZ, "EvtxECmd.exe"):
+    ez_zip = TMP / "ez.zip"
+    download(EZ_URL, ez_zip)
+    safe_extract(ez_zip, TMP)
 
-    ps1 = next(os.path.join(r, f)
-        for r,_,fs in os.walk(TMP) for f in fs if f == "Get-ZimmermanTools.ps1")
+    ps1 = next(p for p in TMP.rglob("Get-ZimmermanTools.ps1"))
 
-    subprocess.run(
-        ["powershell", "-ExecutionPolicy", "Bypass", "-File", ps1],
-        cwd=EZ, check=True
-    )
+    if RUN_EZ_INSTALL:
+        print("[▶] Running Get-ZimmermanTools.ps1")
+        subprocess.run(
+            [
+                "powershell",
+                "-NoProfile",
+                "-ExecutionPolicy", "Bypass",
+                "-File", str(ps1)
+            ],
+            cwd=str(EZ),
+            check=True
+        )
+        print("[✓] EZ Tools installed")
+    else:
+        print("[!] EZ Tools PS1 downloaded but not executed")
+else:
+    print("[✓] EZ Tools already present")
 
 # ---------------- CYLR ----------------
-if not any(f.lower() == "cylr.exe" for _,_,fs in os.walk(CYLR) for f in fs):
-    cylr_zip = os.path.join(TMP, "cylr.zip")
-    urllib.request.urlretrieve(CYLR_URL, cylr_zip)
-    zipfile.ZipFile(cylr_zip).extractall(CYLR)
+if not tool_exists(CYLR, "CyLR.exe"):
+    cylr_zip = TMP / "cylr.zip"
+    download(CYLR_URL, cylr_zip)
+    safe_extract(cylr_zip, CYLR)
+    print("[✓] CyLR extracted")
+else:
+    print("[✓] CyLR already present")
 
 # ---------------- CYLR CONFIG ----------------
-if not os.path.exists(CONF):
-    urllib.request.urlretrieve(CONF_URL, CONF)
+if not CONF.exists():
+    download(CONF_URL, CONF)
+    print("[✓] CyLR config downloaded")
+else:
+    print("[✓] CyLR config already present")
 
 # ---------------- CLEANUP ----------------
 shutil.rmtree(TMP, ignore_errors=True)
 
-print("[✓] Tools initialized successfully")
+print("\n[✓] Tools initialized successfully")
